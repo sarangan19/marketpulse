@@ -1734,3 +1734,101 @@ dialog.dlg[open] {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---- inline threshold editing (dashboard rows) ---- */
+.th-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.th-track {
+  flex: 1;
+  min-width: 60px;
+}
+.th-pill,
+.th-edit {
+  flex: none;
+  width: 92px;
+  /* sit above the row's stretched .wl-link overlay so clicks edit instead of navigating */
+  position: relative;
+  z-index: 1;
+}
+.th-pill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 4px 8px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.15;
+  cursor: text;
+  transition: border-color 160ms var(--ease), background 160ms var(--ease);
+}
+.th-pill[data-threshold="upper"] {
+  align-items: flex-end;
+}
+.th-pill:hover,
+.th-pill:focus-visible {
+  border-style: solid;
+  border-color: var(--text-3);
+  background: var(--surface-2);
+}
+.th-pill .th-k {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.th-pill.hit {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+.th-pill.unset {
+  justify-content: center;
+  min-height: 36px;
+  color: var(--text-3);
+}
+.th-pill.unset[data-threshold="upper"] {
+  align-items: flex-end;
+}
+.th-add {
+  font-size: 12px;
+}
+.th-edit {
+  display: inline-block;
+}
+.th-affix .th-input {
+  height: 36px;
+  width: 100%;
+  font-size: 13px;
+}
+.th-err {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 2;
+  width: max-content;
+  max-width: 220px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--down);
+  font-size: 12px;
+  box-shadow: var(--shadow);
+}
+.th-edit[data-threshold="upper"] .th-err {
+  left: auto;
+  right: 0;
+}
+@media (min-width: 900px) {
+  .wl-head,
+  .wl-row {
+    grid-template-columns: minmax(150px, 1.2fr) 104px 84px minmax(320px, 2.8fr) 170px 44px;
+  }
+}

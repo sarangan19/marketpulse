@@ -1,4 +1,4 @@
-import { EnvelopeSimple, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { EnvelopeSimple, Plus, Trash } from "@phosphor-icons/react";
 import { type KeyboardEvent, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
@@ -6,6 +6,7 @@ import type { WatchItem } from "../api/types";
 import { dir, pct, price, time } from "../lib/format";
 import { MAX_WATCHES, useWatchlist } from "../state/watchlist";
 import { AlertChip, InlineError, Skel, Tick } from "../ui/bits";
+import { InlineThreshold } from "../ui/InlineThreshold";
 import { ThresholdBand } from "../ui/ThresholdBand";
 import { useToast } from "../ui/toast";
 
@@ -63,7 +64,7 @@ function Movers({ items }: { items: WatchItem[] }) {
 }
 
 function Row({ item, name }: { item: WatchItem; name?: string }) {
-  const { openThresholds, remove } = useWatchlist();
+  const { remove } = useWatchlist();
   const p = item.latest?.price ?? null;
   const c = item.latest?.changePct ?? null;
   const d = dir(c);
@@ -84,8 +85,12 @@ function Row({ item, name }: { item: WatchItem; name?: string }) {
         <span className="wl-chg-mobile">{change}</span>
       </div>
       <div className="wl-chg-desktop">{change}</div>
-      <div className="wl-band">
-        <ThresholdBand price={p} lower={item.lower} upper={item.upper} />
+      <div className="wl-band th-inline">
+        <InlineThreshold item={item} side="lower" />
+        <div className="th-track">
+          <ThresholdBand price={p} lower={item.lower} upper={item.upper} labels={false} />
+        </div>
+        <InlineThreshold item={item} side="upper" />
       </div>
       <div className="wl-alerts">
         {sides.length ? (
@@ -95,14 +100,6 @@ function Row({ item, name }: { item: WatchItem; name?: string }) {
         ) : null}
       </div>
       <div className="wl-actions">
-        <button
-          className="icon-btn"
-          aria-label={`Edit alerts for ${item.symbol}`}
-          title="Edit alerts (e)"
-          onClick={() => openThresholds(item.symbol)}
-        >
-          <PencilSimple size={17} />
-        </button>
         <button
           className="icon-btn"
           aria-label={`Remove ${item.symbol}`}
@@ -147,7 +144,7 @@ function ListSkeleton() {
 }
 
 export default function Dashboard() {
-  const { items, error, updatedAt, refresh, openSearch, openThresholds, names } = useWatchlist();
+  const { items, error, updatedAt, refresh, openSearch, editInline, names } = useWatchlist();
   const toast = useToast();
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
@@ -176,7 +173,7 @@ export default function Dashboard() {
       links[Math.max(0, idx - 1)]?.focus();
     } else if (k === "e" && idx >= 0) {
       e.preventDefault();
-      openThresholds(links[idx].dataset.symbol!);
+      editInline(links[idx].dataset.symbol!, "upper");
     }
   }
 
@@ -245,7 +242,7 @@ export default function Dashboard() {
               <span>Symbol</span>
               <span className="r">Last</span>
               <span className="r">Today</span>
-              <span style={{ paddingLeft: 16 }}>Alert band</span>
+              <span style={{ paddingLeft: 16 }}>Alerts: click a value to edit</span>
               <span>Status</span>
               <span />
             </div>

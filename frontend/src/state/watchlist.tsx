@@ -10,6 +10,7 @@ import {
 } from "react";
 import { api } from "../api/client";
 import type { SymbolMatch, Thresholds, WatchItem } from "../api/types";
+import type { Side } from "../lib/thresholds";
 import { errorMessage } from "../lib/format";
 import { useToast } from "../ui/toast";
 
@@ -34,6 +35,10 @@ interface WatchlistCtx {
   editing: string | null;
   closeSearch: () => void;
   closeThresholds: () => void;
+  /** Inline editing on the dashboard row (preferred over the dialog there). */
+  inline: { symbol: string; side: Side } | null;
+  editInline: (symbol: string, side: Side) => void;
+  clearInline: () => void;
 }
 
 const Ctx = createContext<WatchlistCtx | null>(null);
@@ -54,6 +59,7 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
   const [names, setNames] = useState<Record<string, string>>(loadNames);
   const [searchOpen, setSearchOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [inline, setInline] = useState<{ symbol: string; side: Side } | null>(null);
   const lookedUp = useRef(new Set<string>());
 
   const refresh = useCallback(async () => {
@@ -133,7 +139,9 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
         await refresh();
         toast.show("success", `${symbol} added to your watchlist`, {
           label: "Set alerts",
-          run: () => setEditing(symbol),
+          // On the dashboard the row edits in place; elsewhere there is no row, so use the dialog.
+          run: () =>
+            window.location.pathname === "/" ? setInline({ symbol, side: "upper" }) : setEditing(symbol),
         });
         return true;
       } catch (e) {
@@ -187,8 +195,11 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
       editing,
       closeSearch: () => setSearchOpen(false),
       closeThresholds: () => setEditing(null),
+      inline,
+      editInline: (symbol, side) => setInline({ symbol, side }),
+      clearInline: () => setInline(null),
     }),
-    [items, error, updatedAt, refresh, save, add, remove, names, rememberNames, searchOpen, editing],
+    [items, error, updatedAt, refresh, save, add, remove, names, rememberNames, searchOpen, editing, inline],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

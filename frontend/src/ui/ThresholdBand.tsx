@@ -7,13 +7,16 @@ export function ThresholdBand({
   price,
   lower,
   upper,
+  labels = true,
 }: {
   price: number | null;
   lower: number | null;
   upper: number | null;
+  /** Off where the values are already shown next to the band (dashboard inline editors). */
+  labels?: boolean;
 }) {
   if (lower == null && upper == null) {
-    return <div className="band-empty">No thresholds set</div>;
+    return <div className="band-empty">{labels ? "No thresholds set" : "No alerts set"}</div>;
   }
   if (price == null) {
     return <div className="band-empty">Waiting for first price</div>;
@@ -47,25 +50,25 @@ export function ThresholdBand({
       {lower != null && (
         <>
           <div className={`band-tick ${lowHit ? "hit" : ""}`} style={{ left: `${pos(lower)}%` }} />
-          <div
+          {labels && <div
             className={`band-tick-label ${lowHit ? "hit" : ""} ${edge(pos(lower))}`}
             data-threshold="lower"
             style={{ left: `${pos(lower)}%` }}
           >
             {fmt(lower)}
-          </div>
+          </div>}
         </>
       )}
       {upper != null && (
         <>
           <div className={`band-tick ${upHit ? "hit" : ""}`} style={{ left: `${pos(upper)}%` }} />
-          <div
+          {labels && <div
             className={`band-tick-label ${upHit ? "hit" : ""} ${edge(pos(upper))}`}
             data-threshold="upper"
             style={{ left: `${pos(upper)}%` }}
           >
             {fmt(upper)}
-          </div>
+          </div>}
         </>
       )}
       <div className={`band-marker ${lowHit || upHit ? "hit" : ""}`} style={{ left: `${pos(price)}%` }} />
