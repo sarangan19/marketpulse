@@ -1123,6 +1123,7 @@ dialog.dlg[open] {
 /* segmented */
 .seg {
   display: inline-flex;
+  justify-self: start; /* don't stretch to full width inside grid containers */
   padding: 3px;
   gap: 2px;
   border-radius: calc(var(--r-control) + 2px);
