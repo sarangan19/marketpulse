@@ -28,7 +28,7 @@ $env:AWS_PROFILE = "marketpulse"; $env:AWS_REGION = "ap-south-1"
 ## 1. Architecture (slides, ~2 min)
 Use the flow in `docs/architecture.md`: Scheduler → dispatcher → SQS/DLQ → worker → DynamoDB → Stream → evaluator → SNS → notifier, plus digest, API Gateway + Cognito, CloudFront. Mention that everything is Terraform modules, and that there are two environments built from one `stack` module.
 
-## 2. Start the DLQ demo FIRST (it runs in the background, ~5 min)
+## 2. Start the DLQ demo FIRST (it runs in the background: ~7 min to the DLQ, alarm ~2 min later)
 Criterion: *a deliberately induced API error is retried, then routed to the DLQ and surfaced by an alarm.*
 
 ```powershell
@@ -37,7 +37,7 @@ python scripts/build_lambda.py
 cd infra/envs/staging
 terraform apply -var fail_symbols=TSLA -auto-approve
 cd ../../..
-# b) shorten retries for the live demo: 60 s visibility (normally 360 s) -> 3 tries in ~3 min
+# b) shorten retries for the live demo: 60 s visibility (normally 360 s) -> 3 tries; rehearsed: DLQ at +6.5 min, ALARM at +9 min
 $q = aws sqs get-queue-url --queue-name marketpulse-staging-ingest --query QueueUrl --output text
 aws sqs set-queue-attributes --queue-url $q --attributes VisibilityTimeout=60
 # c) make sure TSLA is on the watchlist (add it in the app), then dispatch

@@ -4,6 +4,15 @@ Serverless, event-driven market intelligence and alerting on AWS (ap-south-1).
 Design: [`docs/superpowers/specs/2026-10-21-marketpulse-design.md`](docs/superpowers/specs/2026-10-21-marketpulse-design.md) ·
 API contract: [`docs/openapi.yaml`](docs/openapi.yaml) · Runbook: [`docs/architecture.md`](docs/architecture.md)
 
+## Live environments
+| | Staging | Prod |
+|---|---|---|
+| App | https://dmpzpnqxyg4tn.cloudfront.net | _filled in after first pipeline deploy_ |
+| API | https://nh8gecxm46.execute-api.ap-south-1.amazonaws.com | _see `terraform output api_url`_ |
+| Dashboard | CloudWatch → `marketpulse-staging` | CloudWatch → `marketpulse-prod` |
+
+Demo script: [`docs/demo-runbook.md`](docs/demo-runbook.md).
+
 ## Layout
 | Path | What |
 |---|---|
@@ -80,3 +89,14 @@ Finnhub, Comprehend and Bedrock are stubbed in this mode (`MARKETPULSE_STUB=1`).
 2. Repo variables: `AWS_ROLE_ARN` (bootstrap output), `TF_STATE_BUCKET` (bootstrap output).
 3. Environments `staging` and `prod` (prod: required reviewer). Per-environment variables:
    `SES_SENDER`, `ADMIN_EMAILS` (JSON list, optional), staging only `FAIL_SYMBOLS`.
+4. If the repo uses GitHub's immutable OIDC subjects (newer repos do), pass the prefix to bootstrap:
+   `gh api repos/<owner>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix` →
+   `-var github_sub_prefix=...`. Without it, `configure-aws-credentials` fails with
+   "Not authorized to perform sts:AssumeRoleWithWebIdentity".
+
+## Known constraints
+- **AWS Free plan accounts cannot call Comprehend** (`SubscriptionRequiredException`); headline sentiment
+  then falls back to Bedrock (Nova Micro) automatically, and items record `source: bedrock`.
+- **Finnhub free plan has no historical candles**, so price history accumulates from the 15-minute intraday
+  runs; `scripts/backfill_sentiment.py` backfills news sentiment (real headlines) only.
+- **SES sandbox**: only verified addresses receive mail (`ses_identities` in `infra/bootstrap`).
