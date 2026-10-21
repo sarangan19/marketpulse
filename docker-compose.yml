@@ -1,0 +1,14 @@
+# Local AWS for offline dev. Needs LOCALSTACK_AUTH_TOKEN in .env (free account at localstack.cloud).
+# Finnhub, Comprehend and Bedrock are stubbed inside the Lambdas (MARKETPULSE_STUB=1).
+services:
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN:?set LOCALSTACK_AUTH_TOKEN in .env}
+      SERVICES: dynamodb,dynamodbstreams,sqs,sns,lambda,s3,ses,secretsmanager,logs,iam,sts
+      AWS_DEFAULT_REGION: ap-south-1
+      LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT: "60"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

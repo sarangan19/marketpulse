@@ -1,0 +1,118 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: 1.16.6
+  AWS_REGION: ap-south-1
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  terraform-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      # tflint evaluates filebase64sha256(build/backend.zip), so the zip must exist
+      - run: python scripts/build_lambda.py
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - run: terraform fmt -check -recursive infra
+      - name: validate
+        run: |
+          for d in infra/bootstrap infra/envs/staging infra/envs/prod; do
+            terraform -chdir=$d init -backend=false -input=false
+            terraform -chdir=$d validate
+          done
+      - uses: terraform-linters/setup-tflint@v5
+      - run: tflint --init --config "$GITHUB_WORKSPACE/.tflint.hcl"
+      - run: |
+          for d in infra/bootstrap infra/envs/staging infra/envs/prod; do
+            tflint --chdir $d --config "$GITHUB_WORKSPACE/.tflint.hcl" --call-module-type=all
+          done
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install checkov
+      - run: checkov -d infra --framework terraform --quiet --compact
+
+  plan:
+    needs: [python, terraform-static]
+    # OIDC tokens are not issued to pull requests from forks.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    env:
+      TF_VAR_ses_sender: ${{ vars.SES_SENDER }}
+      TF_VAR_admin_emails: ${{ vars.ADMIN_EMAILS || '[]' }}
+      TF_VAR_fail_symbols: ${{ vars.FAIL_SYMBOLS }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python scripts/build_lambda.py
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - run: terraform -chdir=infra/envs/staging init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+      - id: plan
+        run: |
+          set -o pipefail
+          terraform -chdir=infra/envs/staging plan -input=false -no-color -lock=false | tee plan.txt
+      - name: comment plan on PR
+        if: always() && steps.plan.outcome != 'skipped'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            let plan = fs.existsSync('plan.txt') ? fs.readFileSync('plan.txt', 'utf8') : 'plan failed';
+            if (plan.length > 60000) plan = plan.slice(-60000);
+            const body = `#### Terraform plan (staging) — ${{ steps.plan.outcome }}\n<details><summary>Show plan</summary>\n\n\`\`\`\n${plan}\n\`\`\`\n</details>`;
+            await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });

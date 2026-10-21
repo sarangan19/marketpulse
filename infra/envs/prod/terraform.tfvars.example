@@ -1,0 +1,2 @@
+ses_sender   = "you@example.com"
+admin_emails = ["you@example.com"]
