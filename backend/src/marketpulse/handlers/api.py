@@ -123,6 +123,7 @@ def put_watch(event, sub, email):
             raise HttpError(400, f"unknown symbol {sym}") from e
         except UpstreamError as e:
             raise HttpError(503, "market data provider unavailable, try again") from e
+    db.get_or_create_profile(sub, email)  # notifier and digest need it; UIs may skip GET /me
     w = db.put_watch(sub, sym, upper, lower)
     removed = tuple(side for side, val in (("UPPER", upper), ("LOWER", lower)) if val is None)
     if removed:

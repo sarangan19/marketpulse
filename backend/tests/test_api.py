@@ -172,3 +172,10 @@ def test_removing_a_side_clears_its_alert_state(env):
     db.transition_alert("u1", "AAPL", "LOWER", "CLEAR", 201.0)
     put("AAPL", {"lower": 150})
     assert db.get_alert_states("u1", "AAPL") == {"LOWER": "CLEAR"}
+
+
+def test_put_watch_creates_profile_without_get_me(env):
+    # Alerts and digests need the PROFILE item; a UI may never call GET /me.
+    assert db.get_profile("u1") is None
+    assert put("AAPL", {"upper": 200})[0] == 200
+    assert db.get_profile("u1")["email"] == "u1@x.com"
