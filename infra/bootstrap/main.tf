@@ -101,7 +101,12 @@ data "aws_iam_policy_document" "github_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:*"]
+      # Repos created with GitHub's immutable OIDC subjects send
+      # repo:<owner>@<owner_id>/<repo>@<repo_id>:... instead of repo:<owner>/<repo>:...
+      values = compact([
+        "repo:${var.github_repo}:*",
+        var.github_sub_prefix == "" ? "" : "${var.github_sub_prefix}:*",
+      ])
     }
   }
 }

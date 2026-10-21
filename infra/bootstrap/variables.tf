@@ -28,3 +28,9 @@ variable "ses_identities" {
   type        = list(string)
   default     = []
 }
+
+variable "github_sub_prefix" {
+  description = "Immutable OIDC subject prefix, from: gh api repos/<owner>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix"
+  type        = string
+  default     = ""
+}
