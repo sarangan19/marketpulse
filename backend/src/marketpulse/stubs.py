@@ -1,0 +1,29 @@
+"""Deterministic fakes used when MARKETPULSE_STUB=1 (LocalStack / offline dev)."""
+
+import zlib
+
+from marketpulse.finnhub import UnknownSymbol
+
+UNKNOWN = "ZZZZ"
+
+
+def _base_price(symbol: str) -> float:
+    return 50.0 + zlib.crc32(symbol.encode()) % 400
+
+
+class FakeFinnhub:
+    def quote(self, symbol: str) -> dict:
+        if symbol == UNKNOWN:
+            raise UnknownSymbol(symbol)
+        p = _base_price(symbol)
+        return {"price": p, "change": 1.0, "changePct": round(100 / p, 2), "high": p + 1,
+                "low": p - 1, "open": p - 0.5, "prevClose": p - 1}
+
+    def company_news(self, symbol: str, frm: str, to: str, limit: int = 10) -> list[dict]:
+        heads = [f"{symbol} beats expectations", f"{symbol} faces regulatory probe",
+                 f"Analysts neutral on {symbol}"]
+        return [{"headline": h, "source": "stub", "url": "https://example.com",
+                 "datetime": 1_700_000_000 - i} for i, h in enumerate(heads)][:limit]
+
+    def search(self, q: str) -> list[dict]:
+        return [{"symbol": q.upper(), "description": f"{q.upper()} INC (stub)"}]
