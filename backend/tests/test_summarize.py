@@ -39,3 +39,11 @@ def test_failure_returns_none():
 
 def test_blank_response_returns_none():
     assert summarize("AAPL", ["x"], client=FakeBedrock(text="   ")) is None
+
+
+def test_bedrock_client_has_short_timeouts():
+    from marketpulse import summarize as mod
+
+    cfg = mod._client().meta.config
+    assert cfg.read_timeout <= 10
+    assert cfg.connect_timeout <= 5

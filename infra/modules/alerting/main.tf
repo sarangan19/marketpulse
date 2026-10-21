@@ -3,15 +3,8 @@ resource "aws_sns_topic" "alerts" {
   kms_master_key_id = "alias/aws/sns"
 }
 
-# SES identities. In the SES sandbox every recipient must be verified too.
-resource "aws_ses_email_identity" "sender" {
-  email = var.ses_sender
-}
-
-resource "aws_ses_email_identity" "recipients" {
-  for_each = toset(var.ses_verified_recipients)
-  email    = each.value
-}
+# SES identities are account-wide and live in infra/bootstrap, so destroying one
+# environment never un-verifies addresses the other environment uses.
 
 # ---- evaluator: DynamoDB stream -> threshold check -> alerts topic ----
 

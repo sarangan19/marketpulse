@@ -124,11 +124,16 @@ def put_watch(event, sub, email):
         except UpstreamError as e:
             raise HttpError(503, "market data provider unavailable, try again") from e
     w = db.put_watch(sub, sym, upper, lower)
+    removed = tuple(side for side, val in (("UPPER", upper), ("LOWER", lower)) if val is None)
+    if removed:
+        db.delete_alerts(sub, sym, removed)
     return 200, {"symbol": w["symbol"], "upper": w["upper"], "lower": w["lower"]}
 
 
 def delete_watch(event, sub, email):
-    db.delete_watch(sub, _symbol(event))
+    sym = _symbol(event)
+    db.delete_watch(sub, sym)
+    db.delete_alerts(sub, sym)
     return 204, None
 
 

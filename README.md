@@ -21,7 +21,7 @@ API contract: [`docs/openapi.yaml`](docs/openapi.yaml) · Runbook: [`docs/archit
 |---|---|
 | Finnhub API key | Secrets Manager `marketpulse/<env>/finnhub` as `{"api_key":"..."}` |
 | AWS CLI credentials | local profile, used for `infra/bootstrap` and first staging apply |
-| SES sender + recipient emails | `terraform.tfvars` / GitHub env vars; click the verification emails |
+| SES sender + recipient emails | `infra/bootstrap` var `ses_identities` (account-wide); click the verification emails |
 | Bedrock model access (Amazon Nova Micro) | Bedrock console → Model access (ap-south-1) |
 | SMS sandbox phone numbers | SNS console → Text messaging → Sandbox destination phone numbers |
 | LocalStack auth token | `.env` → `LOCALSTACK_AUTH_TOKEN` |
@@ -41,7 +41,8 @@ py -3.13 -m venv .venv
 # 1. bootstrap (local state, once per account)
 cd infra/bootstrap
 terraform init
-terraform apply -var github_repo=<owner>/<repo> -var budget_email=<you@example.com>
+terraform apply -var github_repo=<owner>/<repo> -var budget_email=<you@example.com> \
+  -var 'ses_identities=["sender@example.com","teammate@example.com"]'
 
 # 2. staging
 cd ../..
@@ -78,4 +79,4 @@ Finnhub, Comprehend and Bedrock are stubbed in this mode (`MARKETPULSE_STUB=1`).
 1. Create the GitHub repo and push. Protect `main` (require PR + passing `ci`).
 2. Repo variables: `AWS_ROLE_ARN` (bootstrap output), `TF_STATE_BUCKET` (bootstrap output).
 3. Environments `staging` and `prod` (prod: required reviewer). Per-environment variables:
-   `SES_SENDER`, `SES_RECIPIENTS` (JSON list), `ADMIN_EMAILS` (JSON list), staging only `FAIL_SYMBOLS`.
+   `SES_SENDER`, `ADMIN_EMAILS` (JSON list, optional), staging only `FAIL_SYMBOLS`.

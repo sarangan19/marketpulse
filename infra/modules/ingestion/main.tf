@@ -8,7 +8,7 @@ locals {
     ["arn:aws:bedrock:*::foundation-model/${local.foundation_model}"],
     local.is_profile ? ["arn:aws:bedrock:${var.region}:${var.account_id}:inference-profile/${var.bedrock_model_id}"] : [],
   )
-  worker_timeout = 30
+  worker_timeout = 60
 }
 
 resource "aws_secretsmanager_secret" "finnhub" {

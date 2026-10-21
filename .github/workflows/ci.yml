@@ -80,8 +80,7 @@ jobs:
       pull-requests: write
     env:
       TF_VAR_ses_sender: ${{ vars.SES_SENDER }}
-      TF_VAR_ses_verified_recipients: ${{ vars.SES_RECIPIENTS }}
-      TF_VAR_admin_emails: ${{ vars.ADMIN_EMAILS }}
+      TF_VAR_admin_emails: ${{ vars.ADMIN_EMAILS || '[]' }}
       TF_VAR_fail_symbols: ${{ vars.FAIL_SYMBOLS }}
     steps:
       - uses: actions/checkout@v5

@@ -208,10 +208,11 @@ def latest_price(symbol: str) -> dict | None:
     return _from_ddb(items[0]) if items else None
 
 
-def put_sentiment(symbol: str, date: str, sentiment: dict, headlines: list[dict],
+def put_sentiment(symbol: str, date: str, sentiment: dict | None, headlines: list[dict],
                   summary: str | None) -> None:
+    """sentiment=None means no news or Comprehend unavailable: stored without label/score."""
     item = {"PK": symbol_pk(symbol), "SK": sent_sk(date), "symbol": symbol, "date": date,
-            "ttl": _ttl(SENT_TTL_DAYS), "headlines": headlines, **sentiment}
+            "ttl": _ttl(SENT_TTL_DAYS), "headlines": headlines, **(sentiment or {})}
     if summary:
         item["summary"] = summary
     _tbl().put_item(Item=_to_ddb(item))
@@ -253,6 +254,26 @@ def transition_alert(sub: str, symbol: str, side: str, new_state: str, price: fl
             return False
         raise
     return True
+
+
+def rollback_alert(sub: str, symbol: str, side: str) -> None:
+    """Undo a BREACHED transition whose notification failed, so a retry re-notifies."""
+    try:
+        _tbl().update_item(
+            Key={"PK": user_pk(sub), "SK": alert_sk(symbol, side)},
+            UpdateExpression="SET #s = :clear",
+            ConditionExpression="#s = :breached",
+            ExpressionAttributeNames={"#s": "state"},
+            ExpressionAttributeValues={":clear": "CLEAR", ":breached": "BREACHED"},
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
+            raise
+
+
+def delete_alerts(sub: str, symbol: str, sides: tuple[str, ...] = ("UPPER", "LOWER")) -> None:
+    for side in sides:
+        _tbl().delete_item(Key={"PK": user_pk(sub), "SK": alert_sk(symbol, side)})
 
 
 def get_alert_states(sub: str, symbol: str) -> dict[str, str]:

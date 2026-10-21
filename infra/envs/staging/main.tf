@@ -25,13 +25,12 @@ provider "aws" {
 }
 
 module "stack" {
-  source                  = "../../modules/stack"
-  env                     = "staging"
-  lambda_zip              = "${path.root}/../../../build/backend.zip"
-  ses_sender              = var.ses_sender
-  ses_verified_recipients = var.ses_verified_recipients
-  admin_emails            = var.admin_emails
-  bedrock_model_id        = var.bedrock_model_id
-  fail_symbols            = var.fail_symbols
-  extra_allowed_origins   = ["http://localhost:5173"]
+  source                = "../../modules/stack"
+  env                   = "staging"
+  lambda_zip            = "${path.root}/../../../build/backend.zip"
+  ses_sender            = var.ses_sender
+  admin_emails          = var.admin_emails
+  bedrock_model_id      = var.bedrock_model_id
+  fail_symbols          = var.fail_symbols
+  extra_allowed_origins = ["http://localhost:5173"]
 }

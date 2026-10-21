@@ -3,6 +3,7 @@
 import logging
 
 import boto3
+from botocore.config import Config
 
 from marketpulse import config
 
@@ -20,7 +21,9 @@ def _client():
         from marketpulse.stubs import FakeBedrock
 
         return FakeBedrock()
-    return boto3.client("bedrock-runtime")
+    # Keep well under the worker timeout so one slow call cannot fail the whole SQS batch.
+    return boto3.client("bedrock-runtime", config=Config(
+        connect_timeout=5, read_timeout=10, retries={"max_attempts": 2, "mode": "standard"}))
 
 
 def summarize(symbol: str, headlines: list[str], client=None) -> str | None:

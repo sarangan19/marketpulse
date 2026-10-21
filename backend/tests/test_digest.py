@@ -32,7 +32,7 @@ def sent():
 
 
 def test_scheduled_run_skips_empty_and_opted_out(env):
-    assert digest.handler({}, None) == {"sent": 1}
+    assert digest.handler({}, None) == {"sent": 1, "failed": 0}
     msg = sent()[-1]
     assert msg.destinations["ToAddresses"] == ["normal@x.com"]
     assert "Apple beats" in msg.body
@@ -40,7 +40,7 @@ def test_scheduled_run_skips_empty_and_opted_out(env):
 
 
 def test_manual_trigger_targets_one_user_even_if_opted_out(env):
-    assert digest.handler({"sub": "optout"}, None) == {"sent": 1}
+    assert digest.handler({"sub": "optout"}, None) == {"sent": 1, "failed": 0}
     msg = sent()[-1]
     assert msg.destinations["ToAddresses"] == ["optout@x.com"]
     assert "MSFT" in msg.body
@@ -48,4 +48,26 @@ def test_manual_trigger_targets_one_user_even_if_opted_out(env):
 
 
 def test_manual_trigger_empty_watchlist_sends_nothing(env):
-    assert digest.handler({"sub": "empty"}, None) == {"sent": 0}
+    assert digest.handler({"sub": "empty"}, None) == {"sent": 0, "failed": 0}
+
+
+def test_one_rejected_recipient_does_not_block_others(env, monkeypatch):
+    db.get_or_create_profile("aaa", "unverified@x.com")
+    db.put_watch("aaa", "AAPL", 200.0, None)
+    real = boto3.client
+
+    class PickySes:
+        def __init__(self):
+            self._ses = real("ses")
+
+        def send_email(self, **kw):
+            if kw["Destination"]["ToAddresses"] == ["unverified@x.com"]:
+                from botocore.exceptions import ClientError
+                raise ClientError({"Error": {"Code": "MessageRejected", "Message": "no"}},
+                                  "SendEmail")
+            return self._ses.send_email(**kw)
+
+    monkeypatch.setattr(digest.boto3, "client",
+                        lambda name, *a, **k: PickySes() if name == "ses" else real(name))
+    assert digest.handler({}, None) == {"sent": 1, "failed": 1}
+    assert sent()[-1].destinations["ToAddresses"] == ["normal@x.com"]

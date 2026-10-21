@@ -65,7 +65,7 @@ def test_daily_run_end_to_end(table, monkeypatch):
     assert notifier.handler(sns_event, None) == {"emails": 1, "sms": 0}
 
     # 5. digest
-    assert digest.handler({}, None) == {"sent": 1}
+    assert digest.handler({}, None) == {"sent": 1, "failed": 0}
     sent = ses_backends[DEFAULT_ACCOUNT_ID]["ap-south-1"].sent_messages
     subjects = [m.subject for m in sent]
     assert any(s.startswith("MarketPulse alert: AAPL crossed above") for s in subjects)

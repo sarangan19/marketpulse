@@ -37,9 +37,14 @@ def handler(event, context):
                 if not (changed and state == "BREACHED"):
                     continue
                 threshold = w["upper"] if side == "UPPER" else w["lower"]
-                sns.publish(TopicArn=config.alerts_topic_arn(), Message=json.dumps({
-                    "sub": sub, "symbol": symbol, "side": side, "price": price,
-                    "threshold": threshold, "ts": ts}))
+                try:
+                    sns.publish(TopicArn=config.alerts_topic_arn(), Message=json.dumps({
+                        "sub": sub, "symbol": symbol, "side": side, "price": price,
+                        "threshold": threshold, "ts": ts}))
+                except Exception:
+                    # Without this, the stream retry would see BREACHED and never notify.
+                    db.rollback_alert(sub, symbol, side)
+                    raise
                 published += 1
     log.info("published %d alerts", published)
     return {"published": published}

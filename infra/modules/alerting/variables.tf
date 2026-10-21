@@ -33,9 +33,3 @@ variable "stream_arn" {
 variable "ses_sender" {
   type = string
 }
-
-variable "ses_verified_recipients" {
-  description = "Recipient emails to verify while SES is in sandbox mode"
-  type        = list(string)
-  default     = []
-}

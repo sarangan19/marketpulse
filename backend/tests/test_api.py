@@ -156,3 +156,19 @@ def test_missing_claims_is_401(env):
     ev = make_event("GET /watchlist")
     ev["requestContext"] = {}
     assert api.handler(ev, None)["statusCode"] == 401
+
+
+def test_delete_clears_alert_state(env):
+    put("AAPL", {"upper": 200, "lower": 150})
+    db.transition_alert("u1", "AAPL", "UPPER", "BREACHED", 201.0)
+    db.transition_alert("u1", "AAPL", "LOWER", "CLEAR", 201.0)
+    call("DELETE /watchlist/{symbol}", path={"symbol": "AAPL"})
+    assert db.get_alert_states("u1", "AAPL") == {}
+
+
+def test_removing_a_side_clears_its_alert_state(env):
+    put("AAPL", {"upper": 200, "lower": 150})
+    db.transition_alert("u1", "AAPL", "UPPER", "BREACHED", 201.0)
+    db.transition_alert("u1", "AAPL", "LOWER", "CLEAR", 201.0)
+    put("AAPL", {"lower": 150})
+    assert db.get_alert_states("u1", "AAPL") == {"LOWER": "CLEAR"}

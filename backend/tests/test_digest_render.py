@@ -45,3 +45,10 @@ def test_no_price_shows_no_data():
 def test_negative_change_formatting():
     _, html, _ = render("a@x.com", "2026-10-21", [item(changePct=-1.234)])
     assert "-1.23%" in html
+
+
+def test_headlines_without_sentiment_say_unavailable():
+    _, html, text = render("a@x.com", "2026-10-21", [item(label=None, score=None)])
+    assert "Sentiment unavailable" in html
+    assert "No news today" not in html
+    assert "Sentiment unavailable" in text

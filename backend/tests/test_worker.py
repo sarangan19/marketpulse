@@ -77,14 +77,29 @@ def test_news_upstream_error_reports_failure(stub, monkeypatch):
     assert out == {"batchItemFailures": [{"itemIdentifier": "m-AAPL"}]}
 
 
-def test_comprehend_failure_still_writes_neutral(stub, monkeypatch):
-    monkeypatch.setattr(worker, "analyze", lambda heads: None)
-    worker.handler(sqs_event(("AAPL", "daily")), None)
-    sent = db.get_sentiment("AAPL", "2026-10-21")
-    assert sent["label"] == "NEUTRAL"
-    assert sent["score"] == 0.0
 
 
 def test_malformed_message_reports_failure(stub):
     ev = {"Records": [{"messageId": "bad", "body": "not json"}]}
     assert worker.handler(ev, None) == {"batchItemFailures": [{"itemIdentifier": "bad"}]}
+
+
+class NoNewsFinnhub(FakeFinnhub):
+    def company_news(self, *a, **kw):
+        return []
+
+
+def test_no_news_writes_no_label(stub, monkeypatch):
+    monkeypatch.setattr(worker, "get_client", lambda: NoNewsFinnhub())
+    worker.handler(sqs_event(("AAPL", "daily")), None)
+    sent = db.get_sentiment("AAPL", "2026-10-21")
+    assert "label" not in sent
+    assert sent["headlines"] == []
+
+
+def test_comprehend_failure_writes_headlines_without_label(stub, monkeypatch):
+    monkeypatch.setattr(worker, "analyze", lambda heads: None)
+    worker.handler(sqs_event(("AAPL", "daily")), None)
+    sent = db.get_sentiment("AAPL", "2026-10-21")
+    assert "label" not in sent
+    assert len(sent["headlines"]) >= 1

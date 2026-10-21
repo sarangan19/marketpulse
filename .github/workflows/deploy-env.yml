@@ -25,10 +25,20 @@ jobs:
     env:
       TF_DIR: infra/envs/${{ inputs.environment }}
       TF_VAR_ses_sender: ${{ vars.SES_SENDER }}
-      TF_VAR_ses_verified_recipients: ${{ vars.SES_RECIPIENTS }}
-      TF_VAR_admin_emails: ${{ vars.ADMIN_EMAILS }}
+      TF_VAR_admin_emails: ${{ vars.ADMIN_EMAILS || '[]' }}
       TF_VAR_fail_symbols: ${{ inputs.environment == 'staging' && vars.FAIL_SYMBOLS || '' }}
     steps:
+      - name: check required variables
+        run: |
+          missing=""
+          for v in AWS_ROLE_ARN TF_STATE_BUCKET SES_SENDER; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          [ -z "$missing" ] || { echo "::error::set GitHub variables:$missing"; exit 1; }
+        env:
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          SES_SENDER: ${{ vars.SES_SENDER }}
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:

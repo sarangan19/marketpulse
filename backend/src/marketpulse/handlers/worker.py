@@ -12,9 +12,6 @@ from marketpulse.summarize import summarize
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
-NEUTRAL = {"score": 0.0, "label": "NEUTRAL", "counts": {}}
-
-
 class InjectedFailure(Exception):
     """Raised for FAIL_SYMBOLS to demonstrate retry -> DLQ."""
 
@@ -35,7 +32,7 @@ def _process(client, msg: dict) -> None:
     frm = (date.fromisoformat(run_date) - timedelta(days=1)).isoformat()
     news = client.company_news(symbol, frm, run_date)
     headlines = [n["headline"] for n in news]
-    sentiment = analyze(headlines) or NEUTRAL
+    sentiment = analyze(headlines) if headlines else None
     summary = summarize(symbol, headlines)
     top = [{"headline": n["headline"], "source": n["source"], "url": n["url"]} for n in news[:5]]
     db.put_sentiment(symbol, run_date, sentiment, top, summary)

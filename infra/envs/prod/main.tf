@@ -25,11 +25,10 @@ provider "aws" {
 }
 
 module "stack" {
-  source                  = "../../modules/stack"
-  env                     = "prod"
-  lambda_zip              = "${path.root}/../../../build/backend.zip"
-  ses_sender              = var.ses_sender
-  ses_verified_recipients = var.ses_verified_recipients
-  admin_emails            = var.admin_emails
-  bedrock_model_id        = var.bedrock_model_id
+  source           = "../../modules/stack"
+  env              = "prod"
+  lambda_zip       = "${path.root}/../../../build/backend.zip"
+  ses_sender       = var.ses_sender
+  admin_emails     = var.admin_emails
+  bedrock_model_id = var.bedrock_model_id
 }

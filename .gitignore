@@ -11,4 +11,6 @@ build/
 .superpowers/
 *.egg-info/
 *.auto.tfvars
+*.tfvars
+!*.tfvars.example
 .terraform.tfstate.lock.info

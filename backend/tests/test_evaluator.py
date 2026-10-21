@@ -76,3 +76,20 @@ def test_ignores_non_insert_and_non_price(topic):
     ev["Records"][0]["dynamodb"]["NewImage"]["SK"] = {"S": "SENT#2026-10-21"}
     assert evaluator.handler(ev, None) == {"published": 0}
     assert topic() == []
+
+
+def test_failed_publish_rolls_back_so_retry_alerts(topic, monkeypatch):
+    db.put_watch("u1", "AAPL", 200.0, None)
+    real = boto3.client
+
+    class FailingSns:
+        def publish(self, **kw):
+            raise RuntimeError("throttled")
+
+    monkeypatch.setattr(evaluator.boto3, "client",
+                        lambda name, *a, **k: FailingSns() if name == "sns" else real(name))
+    with pytest.raises(RuntimeError):
+        evaluator.handler(stream(201), None)
+    assert db.get_alert_states("u1", "AAPL") == {"UPPER": "CLEAR"}
+    monkeypatch.setattr(evaluator.boto3, "client", real)
+    assert evaluator.handler(stream(201), None) == {"published": 1}  # stream retry

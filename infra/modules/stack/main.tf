@@ -36,17 +36,16 @@ module "ingestion" {
 }
 
 module "alerting" {
-  source                  = "../alerting"
-  prefix                  = local.prefix
-  region                  = local.region
-  account_id              = local.account_id
-  zip_path                = var.lambda_zip
-  zip_hash                = local.zip_hash
-  table_name              = module.data.table_name
-  table_arn               = module.data.table_arn
-  stream_arn              = module.data.stream_arn
-  ses_sender              = var.ses_sender
-  ses_verified_recipients = var.ses_verified_recipients
+  source     = "../alerting"
+  prefix     = local.prefix
+  region     = local.region
+  account_id = local.account_id
+  zip_path   = var.lambda_zip
+  zip_hash   = local.zip_hash
+  table_name = module.data.table_name
+  table_arn  = module.data.table_arn
+  stream_arn = module.data.stream_arn
+  ses_sender = var.ses_sender
 }
 
 module "digest" {

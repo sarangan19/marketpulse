@@ -168,3 +168,11 @@ resource "aws_budgets_budget" "monthly" {
     subscriber_email_addresses = [var.budget_email]
   }
 }
+
+# ---- SES identities (account-wide, shared by staging and prod) -------------------
+# In the SES sandbox both the sender and every recipient must be verified.
+
+resource "aws_ses_email_identity" "this" {
+  for_each = toset(var.ses_identities)
+  email    = each.value
+}

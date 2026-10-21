@@ -5,6 +5,7 @@ from html import escape
 COLOURS = {"POSITIVE": "#1a7f37", "NEGATIVE": "#cf222e", "MIXED": "#bf8700",
            "NEUTRAL": "#6e7781"}
 NO_NEWS = "No news today"
+NO_SENTIMENT = "Sentiment unavailable"
 
 
 def _fmt_price(v) -> str:
@@ -38,7 +39,8 @@ def _item_html(it: dict) -> str:
                  f'padding:2px 6px;border-radius:4px;font-size:12px">{escape(label)} '
                  f'{it.get("score", 0):+.2f}</span>')
     else:
-        badge = f'<span style="color:#6e7781">{NO_NEWS}</span>'
+        note = NO_SENTIMENT if it.get("headlines") else NO_NEWS
+        badge = f'<span style="color:#6e7781">{note}</span>'
     summary = (f'<p style="margin:6px 0">{escape(it["summary"])}</p>'
                if it.get("summary") else "")
     heads = "".join(_headline_html(h) for h in it.get("headlines") or [])
@@ -54,7 +56,7 @@ def _item_html(it: dict) -> str:
 
 def _item_text(it: dict) -> str:
     lines = [f"{it['symbol']}  {_fmt_price(it.get('price'))}  {_fmt_pct(it.get('changePct'))}  "
-             f"{it.get('label') or NO_NEWS}"]
+             f"{it.get('label') or (NO_SENTIMENT if it.get('headlines') else NO_NEWS)}"]
     if it.get("summary"):
         lines.append(f"  {it['summary']}")
     lines += [f"  - {h.get('headline', '')} ({h.get('url', '')})"

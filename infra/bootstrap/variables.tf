@@ -22,3 +22,9 @@ variable "budget_usd" {
   type        = string
   default     = "5"
 }
+
+variable "ses_identities" {
+  description = "Email addresses to verify in SES: the sender plus, while in sandbox, every recipient"
+  type        = list(string)
+  default     = []
+}
