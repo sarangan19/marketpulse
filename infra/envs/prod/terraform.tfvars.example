@@ -1,0 +1,3 @@
+ses_sender = "you@example.com"
+ses_verified_recipients = ["you@example.com"]
+admin_emails = ["you@example.com"]
