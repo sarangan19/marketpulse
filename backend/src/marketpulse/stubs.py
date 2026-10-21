@@ -44,3 +44,10 @@ class FakeComprehend:
                         "SentimentScore": {"Positive": pos, "Negative": neg,
                                            "Neutral": 1 - pos - neg, "Mixed": 0.0}})
         return {"ResultList": out, "ErrorList": []}
+
+
+class FakeBedrock:
+    def converse(self, **kwargs):
+        return {"output": {"message": {"role": "assistant", "content": [
+            {"text": "Stub summary: coverage was mixed, with an earnings beat offset by a "
+                     "regulatory probe."}]}}}
