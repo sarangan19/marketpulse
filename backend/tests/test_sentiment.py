@@ -66,5 +66,54 @@ def test_analyze_empty_skips_client():
     assert client.calls == []
 
 
-def test_analyze_client_error_returns_none():
-    assert analyze(["h"], client=FakeComprehend(fail=True)) is None
+class FakeBedrock:
+    def __init__(self, text="", fail=False):
+        self.text, self.fail, self.calls = text, fail, []
+
+    def converse(self, **kw):
+        self.calls.append(kw)
+        if self.fail:
+            raise RuntimeError("bedrock down")
+        return {"output": {"message": {"content": [{"text": self.text}]}}}
+
+
+def test_analyze_both_engines_fail_returns_none():
+    assert analyze(["h"], client=FakeComprehend(fail=True),
+                   fallback=FakeBedrock(fail=True)) is None
+
+
+def test_comprehend_success_tags_source_and_skips_fallback():
+    fb = FakeBedrock(text='["NEGATIVE"]')
+    out = analyze(["h"], client=FakeComprehend(), fallback=fb)
+    assert out["source"] == "comprehend"
+    assert fb.calls == []
+
+
+def test_bedrock_fallback_when_comprehend_blocked():
+    fb = FakeBedrock(text='Sure! ["POSITIVE", "NEGATIVE", "POSITIVE"]')
+    out = analyze(["Apple beats", "Probe opened", "Record sales"],
+                  client=FakeComprehend(fail=True), fallback=fb)
+    assert out["source"] == "bedrock"
+    assert out["counts"] == {"POSITIVE": 2, "NEGATIVE": 1, "NEUTRAL": 0, "MIXED": 0}
+    assert out["score"] == 0.333
+    assert out["label"] == "POSITIVE"
+    prompt = fb.calls[0]["messages"][0]["content"][0]["text"]
+    assert "1. Apple beats" in prompt and "3. Record sales" in prompt
+
+
+def test_bedrock_fallback_rejects_wrong_length():
+    fb = FakeBedrock(text='["POSITIVE"]')
+    assert analyze(["a", "b"], client=FakeComprehend(fail=True), fallback=fb) is None
+
+
+def test_bedrock_fallback_rejects_unknown_labels_and_garbage():
+    for text in ('["GREAT"]', "no json here", '["POSITIVE"'):
+        fb = FakeBedrock(text=text)
+        assert analyze(["a"], client=FakeComprehend(fail=True), fallback=fb) is None
+
+
+def test_bedrock_fallback_uses_one_call_for_all_headlines():
+    fb = FakeBedrock(text="[" + ",".join(['"NEUTRAL"'] * 10) + "]")
+    out = analyze([f"h{i}" for i in range(10)], client=FakeComprehend(fail=True), fallback=fb)
+    assert out["counts"]["NEUTRAL"] == 10
+    assert len(fb.calls) == 1
