@@ -1,7 +1,0 @@
-pyproject.toml
-src/marketpulse/__init__.py
-src/marketpulse.egg-info/PKG-INFO
-src/marketpulse.egg-info/SOURCES.txt
-src/marketpulse.egg-info/dependency_links.txt
-src/marketpulse.egg-info/requires.txt
-src/marketpulse.egg-info/top_level.txt

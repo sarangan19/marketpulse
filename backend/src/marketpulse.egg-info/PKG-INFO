@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: marketpulse
-Version: 0.1.0
-Requires-Python: >=3.13
-Provides-Extra: dev
-Requires-Dist: boto3; extra == "dev"
-Requires-Dist: moto[awslambda,dynamodb,secretsmanager,ses,sns,sqs]>=5; extra == "dev"
-Requires-Dist: pytest>=8; extra == "dev"
-Requires-Dist: ruff>=0.6; extra == "dev"

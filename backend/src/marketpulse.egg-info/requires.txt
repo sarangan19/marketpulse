@@ -1,6 +1,0 @@
-
-[dev]
-boto3
-moto[awslambda,dynamodb,secretsmanager,ses,sns,sqs]>=5
-pytest>=8
-ruff>=0.6
