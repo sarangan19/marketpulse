@@ -7,8 +7,8 @@ API contract: [`docs/openapi.yaml`](docs/openapi.yaml) · Runbook: [`docs/archit
 ## Live environments
 | | Staging | Prod |
 |---|---|---|
-| App | https://dmpzpnqxyg4tn.cloudfront.net | _filled in after first pipeline deploy_ |
-| API | https://nh8gecxm46.execute-api.ap-south-1.amazonaws.com | _see `terraform output api_url`_ |
+| App | https://dmpzpnqxyg4tn.cloudfront.net | https://d3bss174x8ihgi.cloudfront.net |
+| API | https://nh8gecxm46.execute-api.ap-south-1.amazonaws.com | https://49tc1h3a88.execute-api.ap-south-1.amazonaws.com |
 | Dashboard | CloudWatch → `marketpulse-staging` | CloudWatch → `marketpulse-prod` |
 
 Demo script: [`docs/demo-runbook.md`](docs/demo-runbook.md).
