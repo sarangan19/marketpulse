@@ -11,6 +11,8 @@ $env:AWS_PROFILE = "marketpulse"; $env:AWS_REGION = "ap-south-1"
 |---|---|
 | App (staging) | https://dmpzpnqxyg4tn.cloudfront.net |
 | API (staging) | https://nh8gecxm46.execute-api.ap-south-1.amazonaws.com |
+| App (prod) | https://d3bss174x8ihgi.cloudfront.net (separate user pool: sign up again there) |
+| API (prod) | https://49tc1h3a88.execute-api.ap-south-1.amazonaws.com |
 | Repo / pipeline | https://github.com/sarangan19/marketpulse → Actions |
 | Dashboard | CloudWatch → Dashboards → `marketpulse-staging` |
 | Demo login | `marketpulse164@gmail.com` (the only SES-verified recipient) |

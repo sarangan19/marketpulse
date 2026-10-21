@@ -1,0 +1,94 @@
+/* Night Ledger tokens. See DESIGN.md. Dark is the house theme. */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0c0d0f;
+  --surface: #131518;
+  --surface-2: #1a1d21;
+  --surface-3: #22262b;
+  --line: #25292e;
+  --line-strong: #353a41;
+  --text: #eceef0;
+  --text-2: #a4aab2;
+  --text-3: #7e848d;
+  --up: #3fd49a;
+  --down: #ff7a66;
+  --signal: #f0b43c;
+  --up-soft: rgb(63 212 154 / 0.14);
+  --down-soft: rgb(255 122 102 / 0.14);
+  --signal-soft: rgb(240 180 60 / 0.14);
+  --inverse-bg: #eceef0;
+  --inverse-text: #0c0d0f;
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 48px -16px rgb(0 0 0 / 0.6);
+  --scrim: rgb(5 6 7 / 0.72);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f5f6;
+  --surface: #ffffff;
+  --surface-2: #eceef0;
+  --surface-3: #e2e5e8;
+  --line: #dfe2e6;
+  --line-strong: #c5cad0;
+  --text: #121417;
+  --text-2: #484e57;
+  --text-3: #626872;
+  --up: #0a7a53;
+  --down: #c2402b;
+  --signal: #8f5d00;
+  --up-soft: rgb(10 122 83 / 0.1);
+  --down-soft: rgb(194 64 43 / 0.1);
+  --signal-soft: rgb(176 120 10 / 0.14);
+  --inverse-bg: #121417;
+  --inverse-text: #f4f5f6;
+  --shadow: 0 1px 2px rgb(18 20 23 / 0.06), 0 20px 40px -18px rgb(18 20 23 / 0.22);
+  --scrim: rgb(18 20 23 / 0.4);
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    color-scheme: light;
+    --bg: #f4f5f6;
+    --surface: #ffffff;
+    --surface-2: #eceef0;
+    --surface-3: #e2e5e8;
+    --line: #dfe2e6;
+    --line-strong: #c5cad0;
+    --text: #121417;
+    --text-2: #484e57;
+    --text-3: #626872;
+    --up: #0a7a53;
+    --down: #c2402b;
+    --signal: #8f5d00;
+    --up-soft: rgb(10 122 83 / 0.1);
+    --down-soft: rgb(194 64 43 / 0.1);
+    --signal-soft: rgb(176 120 10 / 0.14);
+    --inverse-bg: #121417;
+    --inverse-text: #f4f5f6;
+    --shadow: 0 1px 2px rgb(18 20 23 / 0.06), 0 20px 40px -18px rgb(18 20 23 / 0.22);
+    --scrim: rgb(18 20 23 / 0.4);
+  }
+}
+
+:root {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --r-control: 8px;
+  --r-panel: 14px;
+  --topbar-h: 60px;
+  --tabbar-h: 64px;
+  --gutter: 16px;
+  --maxw: 1240px;
+  /* z-index scale */
+  --z-topbar: 10;
+  --z-tabbar: 10;
+  --z-toast: 30;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: 32px;
+  }
+}
