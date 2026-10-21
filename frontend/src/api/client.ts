@@ -1,5 +1,8 @@
 // Typed MarketPulse API client. KEEP this file when replacing the mock UI.
 import { getIdToken } from "../auth/cognito";
+import { ApiError } from "./errors";
+import { createMockApi } from "./mock/api";
+import { USE_MOCKS } from "./mode";
 import type {
   History,
   Profile,
@@ -9,15 +12,7 @@ import type {
   WatchItem,
 } from "./types";
 
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
+export { ApiError };
 
 type TokenProvider = () => Promise<string | null>;
 
@@ -57,4 +52,8 @@ export function createClient(baseUrl: string, getToken: TokenProvider) {
 
 export type MarketPulseApi = ReturnType<typeof createClient>;
 
-export const api = createClient(import.meta.env.VITE_API_URL ?? "", getIdToken);
+// Mock mode (see ./mode.ts) swaps in an in-memory implementation of the same interface.
+// To drop mocks: delete src/api/mock, drop the USE_MOCKS branches here and in src/auth/cognito.ts, and make this line createClient(...) only.
+export const api: MarketPulseApi = USE_MOCKS
+  ? createMockApi()
+  : createClient(import.meta.env.VITE_API_URL ?? "", getIdToken);
