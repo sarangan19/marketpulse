@@ -81,10 +81,17 @@ module "daily" {
   input      = jsonencode({ mode = "daily" })
 }
 
+# Every 15 minutes across the US session, 09:30-16:00 New York time. One cron expression cannot
+# start at :30 and end on the hour, so the session is split into open / day / close.
 module "intraday" {
+  for_each = {
+    open  = "cron(30/15 9 ? * MON-FRI *)"    # 09:30, 09:45
+    day   = "cron(0/15 10-15 ? * MON-FRI *)" # 10:00 ... 15:45
+    close = "cron(0 16 ? * MON-FRI *)"       # 16:00
+  }
   source     = "../schedule"
-  name       = "${var.prefix}-ingest-intraday"
-  expression = "cron(0/15 9-15 ? * MON-FRI *)"
+  name       = "${var.prefix}-ingest-intraday-${each.key}"
+  expression = each.value
   timezone   = "America/New_York"
   target_arn = module.dispatcher.function_arn
   input      = jsonencode({ mode = "intraday" })

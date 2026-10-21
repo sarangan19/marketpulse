@@ -95,12 +95,16 @@ export function createMockApi(): MarketPulseApi {
     async updateMe(u) {
       const unknown = Object.keys(u).filter((k) => !["phone", "smsOptIn", "digestOptIn"].includes(k));
       if (unknown.length) return fail(400, `unknown fields: ${unknown.sort().join(", ")}`);
-      if (u.phone !== undefined && !PHONE_RE.test(u.phone)) {
+      const clearing = u.phone === null || u.phone === "";
+      if (clearing && u.smsOptIn) return fail(400, "smsOptIn requires a phone number");
+      if (!clearing && u.phone != null && !PHONE_RE.test(u.phone)) {
         return fail(400, "phone must be E.164, e.g. +919876543210");
       }
-      const phone = u.phone ?? profile.phone;
+      const phone = clearing ? undefined : (u.phone ?? profile.phone);
       if (u.smsOptIn && !phone) return fail(400, "smsOptIn requires a phone number");
-      profile = { ...profile, ...u };
+      const { phone: _drop, ...rest } = u;
+      void _drop;
+      profile = { ...profile, ...rest, phone, ...(clearing ? { smsOptIn: false } : {}) };
       return delay(profile);
     },
 

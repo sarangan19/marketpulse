@@ -14,7 +14,7 @@ export interface Profile {
 }
 
 export interface ProfileUpdate {
-  phone?: string;
+  phone?: string | null; // null or "" clears the saved number
   smsOptIn?: boolean;
   digestOptIn?: boolean;
 }

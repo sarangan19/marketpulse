@@ -179,3 +179,43 @@ def test_put_watch_creates_profile_without_get_me(env):
     assert db.get_profile("u1") is None
     assert put("AAPL", {"upper": 200})[0] == 200
     assert db.get_profile("u1")["email"] == "u1@x.com"
+
+
+INTERNAL = {"PK", "SK", "GSI1PK", "GSI1SK", "ttl", "lastDigestAt"}
+
+
+def test_me_hides_internal_keys(env):
+    _, me = call("GET /me")
+    assert not INTERNAL & set(me)
+    _, me = call("PUT /me", body={"digestOptIn": False})
+    assert not INTERNAL & set(me)
+    assert me["digestOptIn"] is False
+
+
+def test_history_hides_internal_keys(env):
+    db.put_price("AAPL", "2026-10-21T02:30:00Z", {"price": 201.0, "changePct": 0.5})
+    _, body = call("GET /symbols/{symbol}/history", path={"symbol": "AAPL"}, qs={"days": "30"})
+    assert body["prices"]
+    assert not INTERNAL & set(body["prices"][0])
+
+
+def test_phone_can_be_cleared_and_turns_sms_off(env):
+    call("PUT /me", body={"phone": "+919876543210", "smsOptIn": True})
+    status, me = call("PUT /me", body={"phone": None})
+    assert status == 200
+    assert "phone" not in me
+    assert me["smsOptIn"] is False
+    assert call("PUT /me", body={"phone": ""})[0] == 200
+
+
+def test_cannot_clear_phone_and_enable_sms(env):
+    assert call("PUT /me", body={"phone": None, "smsOptIn": True})[0] == 400
+
+
+def test_digest_trigger_rate_limited(env):
+    assert call("POST /digest/trigger")[0] == 202
+    status, body = call("POST /digest/trigger")
+    assert status == 429
+    assert "minute" in body["error"]
+    assert len(env.calls) == 1
+    assert call("POST /digest/trigger", sub="u2")[0] == 202  # per user
