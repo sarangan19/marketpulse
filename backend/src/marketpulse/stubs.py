@@ -27,3 +27,20 @@ class FakeFinnhub:
 
     def search(self, q: str) -> list[dict]:
         return [{"symbol": q.upper(), "description": f"{q.upper()} INC (stub)"}]
+
+
+class FakeComprehend:
+    """Keyword sentiment so local runs produce varied labels."""
+
+    def batch_detect_sentiment(self, TextList, LanguageCode):  # noqa: N803 (boto3 casing)
+        out = []
+        for i, text in enumerate(TextList):
+            t = text.lower()
+            pos = 0.8 if "beat" in t else 0.1
+            neg = 0.8 if "probe" in t else 0.05
+            label = "POSITIVE" if pos > neg and pos > 0.5 else (
+                "NEGATIVE" if neg > 0.5 else "NEUTRAL")
+            out.append({"Index": i, "Sentiment": label,
+                        "SentimentScore": {"Positive": pos, "Negative": neg,
+                                           "Neutral": 1 - pos - neg, "Mixed": 0.0}})
+        return {"ResultList": out, "ErrorList": []}
