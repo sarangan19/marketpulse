@@ -40,6 +40,11 @@ def bedrock_model_id() -> str:
     return os.environ.get("BEDROCK_MODEL_ID") or DEFAULT_BEDROCK_MODEL
 
 
+def app_url() -> str | None:
+    """Public dashboard URL for links in emails; optional."""
+    return os.environ.get("APP_URL") or None
+
+
 def fail_symbols() -> set[str]:
     raw = os.environ.get("FAIL_SYMBOLS", "")
     return {s.strip().upper() for s in raw.split(",") if s.strip()}

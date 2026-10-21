@@ -52,3 +52,27 @@ def test_headlines_without_sentiment_say_unavailable():
     assert "Sentiment unavailable" in html
     assert "No news today" not in html
     assert "Sentiment unavailable" in text
+
+
+def test_uses_night_ledger_theme():
+    _, html, _ = render("a@x.com", "2026-10-21", [item()])
+    assert html.startswith("<!doctype html>")
+    assert "#0c0d0f" in html
+    assert "#3fd49a" in html  # positive change in the up colour
+
+
+def test_links_into_app_when_app_url_set():
+    _, html, text = render("a@x.com", "2026-10-21", [item()], app_url="https://app.example.com")
+    assert 'href="https://app.example.com/symbol/AAPL"' in html
+    assert "Open MarketPulse" in html
+    assert "https://app.example.com" in text
+    _, plain, _ = render("a@x.com", "2026-10-21", [item()])
+    assert "Open MarketPulse" not in plain
+
+
+def test_header_counts_advancers_and_decliners():
+    items = [item(), item(symbol="TSLA", changePct=-2.0), item(symbol="MSFT", changePct=None)]
+    _, html, _ = render("a@x.com", "2026-10-21", items)
+    assert "1 up" in html
+    assert "1 down" in html
+    assert "3 symbols" in html

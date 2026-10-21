@@ -6,6 +6,7 @@ import logging
 import boto3
 
 from marketpulse import config, db
+from marketpulse.alert_render import render_alert
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -13,14 +14,9 @@ log.setLevel(logging.INFO)
 VERB = {"UPPER": "crossed above", "LOWER": "fell below"}
 
 
-def _texts(a: dict) -> tuple[str, str, str]:
+def _sms(a: dict) -> str:
     verb = VERB[a["side"]]
-    subject = f"MarketPulse alert: {a['symbol']} {verb} {a['threshold']:.2f}"
-    body = (f"{a['symbol']} {verb} your threshold of {a['threshold']:.2f}.\n"
-            f"Latest price: {a['price']:.2f} at {a['ts']}.\n\n"
-            "You will not be alerted again until the price returns inside your band.")
-    sms = f"MarketPulse: {a['symbol']} {verb} {a['threshold']:.2f} (now {a['price']:.2f})"
-    return subject, body, sms[:160]
+    return f"MarketPulse: {a['symbol']} {verb} {a['threshold']:.2f} (now {a['price']:.2f})"[:160]
 
 
 def handler(event, context):
@@ -32,10 +28,13 @@ def handler(event, context):
         if not profile:
             log.warning("no profile for %s; dropping alert", alert["sub"])
             continue
-        subject, body, sms = _texts(alert)
+        subject, html, text = render_alert(alert, app_url=config.app_url())
+        sms = _sms(alert)
         ses.send_email(Source=config.ses_sender(),
                        Destination={"ToAddresses": [profile["email"]]},
-                       Message={"Subject": {"Data": subject}, "Body": {"Text": {"Data": body}}})
+                       Message={"Subject": {"Data": subject, "Charset": "UTF-8"},
+                                "Body": {"Html": {"Data": html, "Charset": "UTF-8"},
+                                         "Text": {"Data": text, "Charset": "UTF-8"}}})
         emails += 1
         if profile.get("smsOptIn") and profile.get("phone"):
             sns.publish(PhoneNumber=profile["phone"], Message=sms, MessageAttributes={
