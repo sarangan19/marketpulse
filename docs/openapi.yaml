@@ -1,0 +1,164 @@
+openapi: 3.1.0
+info:
+  title: MarketPulse API
+  version: 0.1.0
+  description: |
+    Every route except /health requires a Cognito **ID token** as `Authorization: Bearer <token>`.
+    Errors are always `{"error": "<message>"}`.
+servers:
+  - url: "{apiUrl}"
+    variables:
+      apiUrl:
+        default: https://example.execute-api.ap-south-1.amazonaws.com
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: object, properties: { ok: { type: boolean } } } } } }
+  /me:
+    get:
+      summary: Get (auto-create on first call) the caller's profile
+      responses:
+        "200": { description: Profile, content: { application/json: { schema: { $ref: "#/components/schemas/Profile" } } } }
+    put:
+      summary: Update profile settings (only these three fields are accepted)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                phone: { type: string, pattern: '^\+[1-9]\d{7,14}$', example: "+919876543210" }
+                smsOptIn: { type: boolean, description: "true requires a phone (in body or already saved)" }
+                digestOptIn: { type: boolean }
+      responses:
+        "200": { description: Updated profile, content: { application/json: { schema: { $ref: "#/components/schemas/Profile" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /watchlist:
+    get:
+      responses:
+        "200":
+          description: Watchlist with latest price and alert state
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/WatchItem" } } } }
+  /watchlist/{symbol}:
+    parameters:
+      - $ref: "#/components/parameters/Symbol"
+    put:
+      summary: Add a symbol or update its thresholds (max 20 symbols; lower < upper when both set)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                upper: { type: [number, "null"], exclusiveMinimum: 0 }
+                lower: { type: [number, "null"], exclusiveMinimum: 0 }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { type: object, properties: { symbol: { type: string }, upper: { type: [number, "null"] }, lower: { type: [number, "null"] } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+    delete:
+      responses:
+        "204": { description: Removed }
+  /symbols/search:
+    get:
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 20 } }
+      responses:
+        "200":
+          description: Up to 10 US common stocks
+          content:
+            application/json:
+              schema: { type: array, items: { type: object, properties: { symbol: { type: string }, description: { type: string } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /symbols/{symbol}/history:
+    parameters:
+      - $ref: "#/components/parameters/Symbol"
+      - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 30, default: 7 } }
+    get:
+      responses:
+        "200": { description: History, content: { application/json: { schema: { $ref: "#/components/schemas/History" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /digest/trigger:
+    post:
+      summary: Email the caller's digest now (async)
+      responses:
+        "202": { description: Queued, content: { application/json: { schema: { type: object, properties: { queued: { type: boolean } } } } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Symbol:
+      name: symbol
+      in: path
+      required: true
+      description: US ticker, case-insensitive, normalised to upper case
+      schema: { type: string, pattern: '^[A-Za-z.]{1,10}$', example: AAPL }
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  schemas:
+    Error:
+      type: object
+      properties: { error: { type: string } }
+    Profile:
+      type: object
+      properties:
+        sub: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        smsOptIn: { type: boolean }
+        digestOptIn: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    WatchItem:
+      type: object
+      properties:
+        symbol: { type: string }
+        upper: { type: [number, "null"] }
+        lower: { type: [number, "null"] }
+        latest:
+          type: [object, "null"]
+          properties:
+            price: { type: number }
+            changePct: { type: number }
+            ts: { type: string, format: date-time }
+        alertState:
+          type: object
+          description: Per side, e.g. {"UPPER":"BREACHED","LOWER":"CLEAR"}; empty until first evaluation
+          additionalProperties: { type: string, enum: [BREACHED, CLEAR] }
+    PricePoint:
+      type: object
+      properties:
+        ts: { type: string, format: date-time }
+        price: { type: number }
+        change: { type: number }
+        changePct: { type: number }
+        high: { type: number }
+        low: { type: number }
+        open: { type: number }
+        prevClose: { type: number }
+    SentimentPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        score: { type: number, minimum: -1, maximum: 1 }
+        label: { type: string, enum: [POSITIVE, NEGATIVE, NEUTRAL, MIXED] }
+        counts: { type: object, additionalProperties: { type: integer } }
+        summary: { type: string }
+        headlines:
+          type: array
+          items: { type: object, properties: { headline: { type: string }, source: { type: string }, url: { type: string } } }
+    History:
+      type: object
+      properties:
+        prices: { type: array, items: { $ref: "#/components/schemas/PricePoint" } }
+        sentiment: { type: array, items: { $ref: "#/components/schemas/SentimentPoint" } }
