@@ -22,6 +22,7 @@ module "fn" {
   environment = {
     TABLE_NAME = var.table_name
     SES_SENDER = var.ses_sender
+    APP_URL    = var.app_url
   }
 }
 

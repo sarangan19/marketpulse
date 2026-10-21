@@ -1,15 +1,17 @@
-"""Pure digest rendering. Every interpolated value is escaped; links must be http(s)."""
+"""Pure digest rendering in the Night Ledger theme. Every interpolated value is escaped and
+headline links must be http(s)."""
 
+from datetime import date as _date
 from html import escape
 
-COLOURS = {"POSITIVE": "#1a7f37", "NEGATIVE": "#cf222e", "MIXED": "#bf8700",
-           "NEUTRAL": "#6e7781"}
+from marketpulse import email_theme as t
+
 NO_NEWS = "No news today"
 NO_SENTIMENT = "Sentiment unavailable"
 
 
 def _fmt_price(v) -> str:
-    return "no data" if v is None else f"{v:.2f}"
+    return "no data" if v is None else f"{v:,.2f}"
 
 
 def _fmt_pct(v) -> str:
@@ -20,37 +22,62 @@ def _safe_url(url: str) -> str | None:
     return url if url.startswith(("https://", "http://")) else None
 
 
+def _pretty_date(d: str) -> str:
+    try:
+        return _date.fromisoformat(d).strftime("%A, %d %B %Y")
+    except ValueError:
+        return d
+
+
+def _sentiment(it: dict) -> str:
+    label = it.get("label")
+    if not label:
+        note = NO_SENTIMENT if it.get("headlines") else NO_NEWS
+        return f'<span style="font:400 12px/1 {t.SANS};color:{t.TEXT_3}">{note}</span>'
+    score = it.get("score") or 0
+    return t.chip(f'{escape(label)} <span style="font-family:{t.MONO}">{score:+.2f}</span>',
+                  t.LABEL_COLOURS.get(label, t.TEXT_2))
+
+
 def _headline_html(h: dict) -> str:
     text = escape(h.get("headline", ""))
     url = _safe_url(h.get("url", ""))
-    link = f'<a href="{escape(url, quote=True)}" style="color:#0969da">{text}</a>' if url else text
+    if url:
+        text = (f'<a href="{escape(url, quote=True)}" style="color:{t.TEXT};'
+                f'text-decoration:none">{text}</a>')
     src = escape(h.get("source", ""))
-    return f'<li style="margin:2px 0">{link} <span style="color:#6e7781">({src})</span></li>'
+    return (f'<tr><td style="padding:8px 0;border-top:1px solid {t.LINE};'
+            f'font:500 14px/1.45 {t.SANS};color:{t.TEXT}">{text}'
+            f'<div style="font:400 12px/1.6 {t.SANS};color:{t.TEXT_3}">{src}</div></td></tr>')
 
 
-def _item_html(it: dict) -> str:
+def _item_html(it: dict, app: str | None) -> str:
     sym = escape(it["symbol"])
-    price = _fmt_price(it.get("price"))
-    pct = _fmt_pct(it.get("changePct"))
-    pct_colour = "#cf222e" if (it.get("changePct") or 0) < 0 else "#1a7f37"
-    label = it.get("label")
-    if label:
-        badge = (f'<span style="background:{COLOURS.get(label, "#6e7781")};color:#fff;'
-                 f'padding:2px 6px;border-radius:4px;font-size:12px">{escape(label)} '
-                 f'{it.get("score", 0):+.2f}</span>')
-    else:
-        note = NO_SENTIMENT if it.get("headlines") else NO_NEWS
-        badge = f'<span style="color:#6e7781">{note}</span>'
-    summary = (f'<p style="margin:6px 0">{escape(it["summary"])}</p>'
-               if it.get("summary") else "")
+    if app:
+        sym = (f'<a href="{escape(t.symbol_url(app, it["symbol"]), quote=True)}" '
+               f'style="color:{t.TEXT};text-decoration:none">{sym}</a>')
+    pct = it.get("changePct")
+    summary = ""
+    if it.get("summary"):
+        summary = (f'<tr><td colspan="2" style="padding:12px 0 0;font:400 15px/1.6 {t.SANS};'
+                   f'color:{t.TEXT_2}">{escape(it["summary"])}</td></tr>')
     heads = "".join(_headline_html(h) for h in it.get("headlines") or [])
-    heads_html = f'<ul style="margin:4px 0;padding-left:18px">{heads}</ul>' if heads else ""
+    heads_html = ""
+    if heads:
+        heads_html = ('<tr><td colspan="2" style="padding:12px 0 0">'
+                      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+                      f'border="0">{heads}</table></td></tr>')
     return (
-        '<tr><td style="padding:12px;border-bottom:1px solid #d0d7de">'
-        f'<strong style="font-size:16px">{sym}</strong> '
-        f'<span style="font-size:16px">{price}</span> '
-        f'<span style="color:{pct_colour}">{escape(pct)}</span> {badge}'
-        f'{summary}{heads_html}</td></tr>'
+        f'<tr><td class="px" style="padding:24px 32px;border-top:1px solid {t.LINE}">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+        f'<tr><td style="font:600 17px/1.3 {t.SANS};color:{t.TEXT};letter-spacing:-0.01em">'
+        f'{sym}</td>'
+        f'<td align="right" style="font:500 17px/1.3 {t.MONO};color:{t.TEXT};'
+        f'white-space:nowrap">{_fmt_price(it.get("price"))}'
+        f'<span style="padding-left:10px;font:500 13px/1 {t.MONO};color:{t.change_colour(pct)}">'
+        f'{escape(_fmt_pct(pct))}</span></td></tr>'
+        f'<tr><td colspan="2" style="padding:10px 0 0">{_sentiment(it)}</td></tr>'
+        f'{summary}{heads_html}</table></td></tr>'
     )
 
 
@@ -64,17 +91,34 @@ def _item_text(it: dict) -> str:
     return "\n".join(lines)
 
 
-def render(email: str, date: str, items: list[dict]) -> tuple[str, str, str]:
+def render(email: str, date: str, items: list[dict],
+           app_url: str | None = None) -> tuple[str, str, str]:
     subject = f"MarketPulse digest — {date}"
-    rows = "".join(_item_html(it) for it in items)
-    html = (
-        '<!doctype html><html><body style="font-family:Arial,sans-serif;color:#1f2328;'
-        'max-width:640px;margin:0 auto">'
-        f'<h2 style="margin:16px 0 4px">MarketPulse digest</h2>'
-        f'<p style="margin:0 0 12px;color:#6e7781">{escape(date)} · {escape(email)}</p>'
-        f'<table style="width:100%;border-collapse:collapse">{rows}</table>'
-        '<p style="color:#6e7781;font-size:12px">Informational only, not investment advice.</p>'
-        '</body></html>'
+    app = t.safe_app_url(app_url)
+    ups = sum(1 for it in items if (it.get("changePct") or 0) > 0)
+    downs = sum(1 for it in items if (it.get("changePct") or 0) < 0)
+    n = len(items)
+
+    header = (
+        f'<tr><td class="px" style="padding:28px 32px 24px">'
+        f'<div style="font:400 13px/1.4 {t.SANS};color:{t.TEXT_3}">Daily digest</div>'
+        f'<div style="padding-top:6px;font:600 26px/1.2 {t.SANS};color:{t.TEXT};'
+        f'letter-spacing:-0.02em">{escape(_pretty_date(date))}</div>'
+        f'<div style="padding-top:10px;font:400 14px/1.5 {t.SANS};color:{t.TEXT_2}">'
+        f'{n} symbol{"s" if n != 1 else ""} &middot; '
+        f'<span style="color:{t.UP}">{ups} up</span> &middot; '
+        f'<span style="color:{t.DOWN}">{downs} down</span></div></td></tr>'
     )
-    text = f"MarketPulse digest — {date}\n\n" + "\n\n".join(_item_text(it) for it in items)
+    cta = ""
+    if app:
+        cta = (f'<tr><td class="px" style="padding:24px 32px 32px;border-top:1px solid {t.LINE}">'
+               f'{t.button(app, "Open MarketPulse")}</td></tr>')
+    body = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+            f'{header}{"".join(_item_html(it, app) for it in items)}{cta}</table>')
+    footer = (f"Sent to {escape(email)}. Sentiment is scored from news headlines and summaries "
+              "are AI-generated. Informational only, not investment advice.")
+    html = t.layout(title=subject, preheader=f"{n} symbols: {ups} up, {downs} down",
+                    body=body, footer=footer)
+    text = (f"MarketPulse digest — {date}\n\n" + "\n\n".join(_item_text(it) for it in items)
+            + (f"\n\nOpen MarketPulse: {app}" if app else ""))
     return subject, html, text

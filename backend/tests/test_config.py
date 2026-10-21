@@ -24,3 +24,9 @@ def test_stub_mode_only_for_1(monkeypatch):
 
 def test_table_name_from_env():
     assert config.table_name() == "marketpulse-test"
+
+
+def test_app_url_optional(monkeypatch):
+    assert config.app_url() is None
+    monkeypatch.setenv("APP_URL", "https://x.test")
+    assert config.app_url() == "https://x.test"

@@ -63,3 +63,13 @@ def test_opted_in_without_phone_is_email_only(env):
 
 def test_missing_profile_skipped(env):
     assert notifier.handler(sns_event(sub="ghost"), None) == {"emails": 0, "sms": 0}
+
+
+def test_email_is_themed_html_with_app_link(env, monkeypatch):
+    monkeypatch.setenv("APP_URL", "https://app.example.com")
+    db.get_or_create_profile("u1", "u1@x.com")
+    notifier.handler(sns_event(), None)
+    body = sent_emails()[-1].body
+    assert "<!doctype html>" in body
+    assert "Upper breached" in body
+    assert 'href="https://app.example.com/symbol/AAPL"' in body

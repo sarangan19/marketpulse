@@ -40,7 +40,7 @@ def handler(event, context):
         items = _items(p["sub"], date)
         if not items:
             continue
-        subject, html, text = render(p["email"], date, items)
+        subject, html, text = render(p["email"], date, items, app_url=config.app_url())
         try:
             ses.send_email(Source=config.ses_sender(), Destination={"ToAddresses": [p["email"]]},
                            Message={"Subject": {"Data": subject, "Charset": "UTF-8"},

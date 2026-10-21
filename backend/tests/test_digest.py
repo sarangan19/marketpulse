@@ -71,3 +71,9 @@ def test_one_rejected_recipient_does_not_block_others(env, monkeypatch):
                         lambda name, *a, **k: PickySes() if name == "ses" else real(name))
     assert digest.handler({}, None) == {"sent": 1, "failed": 1}
     assert sent()[-1].destinations["ToAddresses"] == ["normal@x.com"]
+
+
+def test_digest_links_to_app_when_configured(env, monkeypatch):
+    monkeypatch.setenv("APP_URL", "https://app.example.com")
+    digest.handler({"sub": "normal"}, None)
+    assert 'href="https://app.example.com/symbol/AAPL"' in sent()[-1].body

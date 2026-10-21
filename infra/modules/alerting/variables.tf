@@ -33,3 +33,9 @@ variable "stream_arn" {
 variable "ses_sender" {
   type = string
 }
+
+variable "app_url" {
+  description = "Public dashboard URL used for links in emails"
+  type        = string
+  default     = ""
+}

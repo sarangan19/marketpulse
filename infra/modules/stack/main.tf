@@ -46,6 +46,7 @@ module "alerting" {
   table_arn  = module.data.table_arn
   stream_arn = module.data.stream_arn
   ses_sender = var.ses_sender
+  app_url    = module.frontend.url
 }
 
 module "digest" {
@@ -58,6 +59,7 @@ module "digest" {
   table_name = module.data.table_name
   table_arn  = module.data.table_arn
   ses_sender = var.ses_sender
+  app_url    = module.frontend.url
 }
 
 module "frontend" {
