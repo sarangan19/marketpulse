@@ -48,8 +48,9 @@ aws lambda invoke --function-name marketpulse-staging-dispatcher --cli-binary-fo
 Narrate while it runs: the worker returns `batchItemFailures` only for TSLA, so the other symbols succeed. SQS redelivers TSLA, and after 3 receives it moves to the DLQ. Come back to it in step 6.
 
 ## 3. App walkthrough (~3 min)
-- Sign in. In the watchlist, add `MSFT` with an **upper** threshold just *below* its current price. (Search for it, save, and the price shows after the next run.)
-- Open AAPL to show the price line and the 30-day sentiment bars, with the AI summary and headlines underneath.
+- Sign in. On the **MSFT** row, click **+ Above** (right of the alert band), type a price just *below* its current price, press **Enter**. Point out: edits happen in the row; Esc cancels; an empty value turns an alert off; a lower above the upper shows an error on the row.
+- New symbols: **Add symbol** (or `/`) → search → pick one; then set its alerts the same way in its row.
+- Open AAPL: price line (intraday points so far), then the news-sentiment bars. Switch **1D / 7D / 14D / 30D** under the bars to show up to 30 days of real headline sentiment; click a bar for that day's AI summary and headlines.
 - Settings: phone and SMS opt-in, digest opt-in.
 
 ## 4. Alert in under 1 minute, then no repeats (~2 min)
