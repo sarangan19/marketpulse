@@ -10,3 +10,5 @@ build/
 .pytest_cache/
 .superpowers/
 *.egg-info/
+*.auto.tfvars
+.terraform.tfstate.lock.info
