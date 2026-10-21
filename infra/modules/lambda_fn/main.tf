@@ -65,7 +65,8 @@ resource "aws_lambda_function" "this" {
     mode = "Active"
   }
 
-  depends_on = [aws_cloudwatch_log_group.this, aws_iam_role_policy.logs]
+  # Event source mappings attach right after creation; the app policy must already exist.
+  depends_on = [aws_cloudwatch_log_group.this, aws_iam_role_policy.logs, aws_iam_role_policy.app]
 }
 
 data "aws_iam_policy_document" "xray" {

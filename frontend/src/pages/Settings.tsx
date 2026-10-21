@@ -81,6 +81,7 @@ export default function Settings({ onSignOut }: { onSignOut: () => void }) {
     if (!profile || phoneErr || smsErr) return;
     const u: ProfileUpdate = { smsOptIn: sms, digestOptIn: digest };
     if (phoneTrim && phoneTrim !== profile.phone) u.phone = phoneTrim;
+    else if (!phoneTrim && profile.phone) u.phone = null; // clear the saved number
     setSaving(true);
     setServerError(null);
     try {

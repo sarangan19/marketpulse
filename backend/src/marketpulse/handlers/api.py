@@ -16,6 +16,12 @@ log.setLevel(logging.INFO)
 MAX_WATCHES = 20
 PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 PROFILE_FIELDS = {"phone", "smsOptIn", "digestOptIn"}
+INTERNAL_KEYS = {"PK", "SK", "GSI1PK", "GSI1SK", "ttl", "lastDigestAt"}
+DIGEST_COOLDOWN_S = 300  # SES sandbox allows 200 sends/day, shared with alerts
+
+
+def _public(item: dict) -> dict:
+    return {k: v for k, v in item.items() if k not in INTERNAL_KEYS}
 
 
 class HttpError(Exception):
@@ -74,7 +80,7 @@ def _claims(event) -> tuple[str, str]:
 # ---- routes ---------------------------------------------------------------
 
 def get_me(event, sub, email):
-    return 200, db.get_or_create_profile(sub, email)
+    return 200, _public(db.get_or_create_profile(sub, email))
 
 
 def put_me(event, sub, email):
@@ -85,14 +91,22 @@ def put_me(event, sub, email):
     for flag in ("smsOptIn", "digestOptIn"):
         if flag in body and not isinstance(body[flag], bool):
             raise HttpError(400, f"{flag} must be a boolean")
-    if "phone" in body and not (isinstance(body["phone"], str) and PHONE_RE.match(body["phone"])):
+    clearing = "phone" in body and body["phone"] in (None, "")
+    if clearing:
+        if body.get("smsOptIn"):
+            raise HttpError(400, "smsOptIn requires a phone number")
+        del body["phone"]
+    elif "phone" in body and not (isinstance(body["phone"], str)
+                                  and PHONE_RE.match(body["phone"])):
         raise HttpError(400, "phone must be E.164, e.g. +919876543210")
     profile = db.get_or_create_profile(sub, email)
     if body.get("smsOptIn") and not (body.get("phone") or profile.get("phone")):
         raise HttpError(400, "smsOptIn requires a phone number")
-    if not body:
-        return 200, profile
-    return 200, db.update_profile(sub, **body)
+    if clearing:
+        profile = db.clear_phone(sub)
+    if body:
+        profile = db.update_profile(sub, **body)
+    return 200, _public(profile)
 
 
 def get_watchlist(event, sub, email):
@@ -153,10 +167,15 @@ def get_history(event, sub, email):
     raw = (event.get("queryStringParameters") or {}).get("days", "7")
     if not raw.isdigit() or not 1 <= int(raw) <= 30:
         raise HttpError(400, "days must be an integer 1-30")
-    return 200, db.history(sym, int(raw))
+    hist = db.history(sym, int(raw))
+    return 200, {k: [_public(i) for i in v] for k, v in hist.items()}
 
 
 def trigger_digest(event, sub, email):
+    db.get_or_create_profile(sub, email)
+    if not db.claim_digest_slot(sub, DIGEST_COOLDOWN_S):
+        raise HttpError(429, f"a digest was sent recently; try again in "
+                             f"{DIGEST_COOLDOWN_S // 60} minutes")
     _lambda_client().invoke(FunctionName=config.digest_function_name(),
                             InvocationType="Event", Payload=json.dumps({"sub": sub}))
     return 202, {"queued": True}

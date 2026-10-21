@@ -119,6 +119,34 @@ def update_profile(sub: str, **fields) -> dict:
     return _from_ddb(resp["Attributes"])
 
 
+def clear_phone(sub: str) -> dict:
+    """Remove the phone number; SMS cannot stay on without one."""
+    resp = _tbl().update_item(
+        Key={"PK": user_pk(sub), "SK": PROFILE_SK},
+        UpdateExpression="REMOVE phone SET smsOptIn = :f",
+        ExpressionAttributeValues={":f": False},
+        ReturnValues="ALL_NEW",
+    )
+    return _from_ddb(resp["Attributes"])
+
+
+def claim_digest_slot(sub: str, min_interval_s: int) -> bool:
+    """Atomically record a manual digest request; False if one happened too recently."""
+    now = int(time.time())
+    try:
+        _tbl().update_item(
+            Key={"PK": user_pk(sub), "SK": PROFILE_SK},
+            UpdateExpression="SET lastDigestAt = :now",
+            ConditionExpression="attribute_not_exists(lastDigestAt) OR lastDigestAt < :cutoff",
+            ExpressionAttributeValues={":now": now, ":cutoff": now - min_interval_s},
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            return False
+        raise
+    return True
+
+
 def list_profiles() -> list[dict]:
     return _scan_all(FilterExpression=Attr("SK").eq(PROFILE_SK))
 
