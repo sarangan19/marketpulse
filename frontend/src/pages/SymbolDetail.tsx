@@ -88,6 +88,19 @@ export default function SymbolDetail() {
   const selIdx = sel ?? sentiment.length - 1;
   const day0 = sentiment[selIdx];
 
+  // Range applies to both charts; it sits under the sentiment bars, where history is deepest.
+  const rangePicker = (
+    <div className="chart-bar">
+      <div className="seg" role="group" aria-label="History range">
+        {RANGES.map((r) => (
+          <button key={r.key} aria-pressed={r.key === range.key} onClick={() => setRange(r)}>
+            {r.key}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="wrap page">
       <Link to="/" className="back">
@@ -149,16 +162,6 @@ export default function SymbolDetail() {
             )}
           </div>
 
-          <div className="chart-bar">
-            <div className="seg" role="group" aria-label="Chart range">
-              {RANGES.map((r) => (
-                <button key={r.key} aria-pressed={r.key === range.key} onClick={() => setRange(r)}>
-                  {r.key}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <section className="section senti" aria-labelledby="senti-title" style={{ marginTop: 40 }}>
             <div className="section-head">
               <h2 id="senti-title">News sentiment</h2>
@@ -174,8 +177,11 @@ export default function SymbolDetail() {
                 No news has been scored for {symbol} in this range yet.
               </p>
             ) : (
+              <SentimentBars points={sentiment} selected={selIdx} onSelect={setSel} />
+            )}
+            {!(loading && !data) && rangePicker}
+            {(loading && !data) || sentiment.length === 0 ? null : (
               <>
-                <SentimentBars points={sentiment} selected={selIdx} onSelect={setSel} />
                 {day0 && (
                   <div className="senti-detail">
                     <div>
